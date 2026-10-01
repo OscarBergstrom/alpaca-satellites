@@ -63,7 +63,7 @@
   /* ---------- Hero ---------- */
   .hero {
     display: grid; gap: 2rem; align-items: center;
-    padding: 2.5rem 0 2rem;
+    padding-block: 2.5rem 2rem; 
   }
   @media (min-width: 820px) {
     .hero { grid-template-columns: 1.1fr 1fr; padding: 4.5rem 0 3.5rem; gap: 3.5rem; }
@@ -94,18 +94,26 @@
   .sky svg { width: 100%; max-width: 440px; height: auto; margin: 0 auto; display: block; }
   .sky figcaption { font-family: var(--sans); font-size: 0.85rem; color: var(--muted); text-align: center; margin-top: 0.6rem; }
 
-  /* streak animation: one moment on load */
-  .streak { stroke-dasharray: 520; stroke-dashoffset: 520; animation: draw 2.4s 0.4s cubic-bezier(.4,0,.2,1) forwards; }
-  .flash { opacity: 0; transform-origin: 214px 183px; animation: flash 1.6s 1.3s ease-out forwards; }
+  /* streak animation: waits until the sky scrolls into view */
+  .streak { stroke-dasharray: 520; stroke-dashoffset: 520; }
+  .flash  { opacity: 0; transform-origin: 214px 177px; }
+
+  .sky.play .streak { animation: draw 2.4s 0.3s cubic-bezier(.4,0,.2,1) forwards; }
+  .sky.play .flash  { animation: flash 1.6s 1.2s ease-out forwards; }
+
   @keyframes draw { to { stroke-dashoffset: 0; } }
   @keyframes flash {
-    0% { opacity: 0; transform: scale(0.3); }
-    18% { opacity: 1; transform: scale(1.15); }
+    0%   { opacity: 0; transform: scale(0.3); }
+    18%  { opacity: 1; transform: scale(1.15); }
     100% { opacity: 0.85; transform: scale(1); }
   }
+
+  /* no IntersectionObserver, or reduced motion: just show the finished streak */
+  .no-io .streak { stroke-dashoffset: 0; }
+  .no-io .flash  { opacity: 0.85; }
   @media (prefers-reduced-motion: reduce) {
-    .streak { animation: none; stroke-dashoffset: 0; }
-    .flash { animation: none; opacity: 0.85; }
+    .streak, .sky.play .streak { animation: none; stroke-dashoffset: 0; }
+    .flash,  .sky.play .flash  { animation: none; opacity: 0.85; }
   }
 
   /* ---------- Sections ---------- */
@@ -207,7 +215,6 @@
         <text x="8" y="205">E</text><text x="392" y="205">W</text>
       </g>
       <path class="streak" d="M62 128 Q 205 150 352 262" fill="none" stroke="#ebeeee" stroke-width="2" stroke-linecap="round" stroke-opacity="0.85"/>
-      </g>
     </svg>
     <figcaption>Illustration: a satellite crossing the sky with a brief specular glint</figcaption>
   </figure>
@@ -227,7 +234,7 @@
     <div class="col">
       <h2 id="method">How the pipeline works</h2>
       <ol class="steps">
-        <li><div><h3>Calibrate the fisheye lens</h3><p>Solve the camera's distortion using SkyFit2 so every pixel maps to a known celestialposition on the sky.</p></div></li>
+        <li><div><h3>Calibrate the fisheye lens</h3><p>Solve the camera's distortion using SkyFit2 so every pixel maps to a known celestial position on the sky.</p></div></li>
         <li><div><h3>Re-project the sky</h3><p>A gnomonic projection turns satellite tracks, which follow great circles, into straight lines.</p></div></li>
         <li><div><h3>Detect streaks</h3><p>A Hough transform picks out the straight tracks in the re-projected images.</p></div></li>
         <li><div><h3>Find glints</h3><p>Contour detection algorithm detects glints which due to crosstalk appear as ovals with streak tails.</p></div></li>
@@ -240,14 +247,14 @@
   <section aria-labelledby="results">
     <div class="col">
       <h2 id="results">Results so far</h2>
-      <p>The pipeline is strongest on bright glints, brighter than magnitude 0, where it produces single-exposure light curves ready for analysis. </p>
+      <p>The pipeline is strongest on bright glints, brighter than magnitude 0, where it produces single-exposure light curves ready for analysis.</p>
     </div>
 
     <!-- Put your images in a folder called "figures" next to this file, using these names (or change the src). -->
     <div class="figures">
       <figure class="wide">
-        <img src="hulianwang_glints.png" alt="Light curve of a bright satellite glint" loading="lazy" onerror="missing(this)">
-        <figcaption><strong>A selection of 4 bright Hulianwang glints.</strong>.</figcaption>
+        <img src="figures/hulianwang_glints.png" alt="Four bright Hulianwang satellite glints" loading="lazy" onerror="missing(this)">
+        <figcaption><strong>A selection of 4 bright Hulianwang glints.</strong></figcaption>
       </figure>
       <figure>
         <img src="figures/fisheye_vs_gnomonic.png" alt="Raw fisheye frame beside its gnomonic projection" loading="lazy" onerror="missing(this)">
@@ -279,7 +286,7 @@
 </main>
 
 <footer class="wrap">
-  <p>Supervised by Michael Peel at Imperial College London. ALPACA data gathered from the publically avaialable ESO Archive source: https://archive.eso.org/cms.html. Based on observations made at ESO's Paranal Observatory.</p>
+  <p>Supervised by Michael Peel at Imperial College London. ALPACA data from the publicly available <a href="https://archive.eso.org/cms.html">ESO Archive</a>. Based on observations made at ESO's Paranal Observatory.</p>
 </footer>
 
 <script>
@@ -291,9 +298,26 @@
     img.replaceWith(box);
   }
 
+  // Play the satellite crossing once the sky is on screen
+  (function () {
+    var sky = document.querySelector('.sky');
+    if (!sky) return;
+    if (!('IntersectionObserver' in window)) { sky.classList.add('no-io'); return; }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          sky.classList.add('play');
+          io.disconnect();          // play once
+        }
+      });
+    }, { threshold: 0.6 });         // start when 60% of the sky is visible
+    io.observe(sky);
+  })();
+
   // Deterministic star field, so it looks the same on every visit
   (function () {
     var g = document.getElementById('stars');
+    if (!g) return;
     var seed = 7;
     function rand() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
     var ns = 'http://www.w3.org/2000/svg';

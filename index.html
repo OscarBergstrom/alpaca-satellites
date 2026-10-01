@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Satellite glints in all-sky imagery | Oscar Bergstrom</title>
+<meta name="description" content="An automated pipeline for detecting and photometrically characterising satellite streaks and glints in all-sky imagery from the ALPACA camera at Paranal.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Imperial College London palette */
+    --navy: #002147;       /* deep navy: sky, headings */
+    --imperial: #003e74;   /* Imperial blue: buttons, links */
+    --grey-light: #ebeeee; /* page background */
+    --grey: #9d9d9d;       /* rules, sky markings */
+    --sky-blue: #d4effc;   /* glint highlight */
+    --charcoal: #373a36;   /* body text */
+
+    --sky: var(--navy);
+    --glint: var(--sky-blue);
+    --paper: var(--grey-light);
+    --ink: var(--navy);
+    --text: var(--charcoal);
+    --brand: var(--imperial);
+    --on-brand: #ffffff;
+    --muted: #5c5f5a;
+    --rule: #c9cdcd;
+    --surface: #ffffff;
+    --focus: var(--imperial);
+    --serif: "Literata", Georgia, "Times New Roman", serif;
+    --sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #00152e; --ink: #ebeeee; --text: #dfe3e3; --muted: #a9adad;
+      --rule: #1f3a5c; --surface: #002147; --focus: #d4effc;
+      --brand: #d4effc; --on-brand: #002147;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #00152e; --ink: #ebeeee; --text: #dfe3e3; --muted: #a9adad;
+    --rule: #1f3a5c; --surface: #002147; --focus: #d4effc;
+    --brand: #d4effc; --on-brand: #002147;
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0; background: var(--paper); color: var(--text);
+    font-family: var(--serif); font-size: 1.0625rem; line-height: 1.65;
+    -webkit-text-size-adjust: 100%;
+  }
+  img { max-width: 100%; display: block; }
+  a { color: var(--brand); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 1.25rem; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    display: grid; gap: 2rem; align-items: center;
+    padding: 2.5rem 0 2rem;
+  }
+  @media (min-width: 820px) {
+    .hero { grid-template-columns: 1.1fr 1fr; padding: 4.5rem 0 3.5rem; gap: 3.5rem; }
+  }
+  h1 {
+    font-family: var(--sans); font-stretch: 78%; font-weight: 750;
+    font-size: clamp(2.3rem, 6.2vw, 3.9rem); line-height: 1.02; color: var(--ink);
+    letter-spacing: -0.01em; margin: 0 0 1.1rem;
+  }
+  .lede { font-size: 1.15rem; max-width: 34em; margin: 0 0 1.25rem; }
+  .byline { font-family: var(--sans); font-size: 0.98rem; color: var(--muted); margin: 0 0 1.75rem; line-height: 1.5; }
+  .byline strong { color: var(--ink); font-weight: 650; }
+
+  .links { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+  .btn {
+    font-family: var(--sans); font-weight: 600; font-size: 0.98rem;
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.7rem 1.05rem; border-radius: 999px; text-decoration: none;
+    border: 1.5px solid var(--brand); background: transparent; color: var(--brand);
+    min-height: 44px;
+  }
+  .btn.primary { background: var(--brand); color: var(--on-brand); }
+  .btn svg { width: 1.05em; height: 1.05em; flex: none; }
+  .btn:hover { background: var(--brand); color: var(--on-brand); }
+  .btn[aria-disabled="true"] { opacity: 0.55; border-style: dashed; pointer-events: none; }
+
+  .sky { margin: 0; }
+  .sky svg { width: 100%; max-width: 440px; height: auto; margin: 0 auto; display: block; }
+  .sky figcaption { font-family: var(--sans); font-size: 0.85rem; color: var(--muted); text-align: center; margin-top: 0.6rem; }
+
+  /* streak animation: one moment on load */
+  .streak { stroke-dasharray: 520; stroke-dashoffset: 520; animation: draw 2.4s 0.4s cubic-bezier(.4,0,.2,1) forwards; }
+  .flash { opacity: 0; transform-origin: 214px 183px; animation: flash 1.6s 1.3s ease-out forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @keyframes flash {
+    0% { opacity: 0; transform: scale(0.3); }
+    18% { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 0.85; transform: scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .streak { animation: none; stroke-dashoffset: 0; }
+    .flash { animation: none; opacity: 0.85; }
+  }
+
+  /* ---------- Sections ---------- */
+  main section { padding: 2.75rem 0; border-top: 1px solid var(--rule); }
+  .col { max-width: 40rem; }
+  h2 {
+    font-family: var(--sans); font-stretch: 85%; font-weight: 700;
+    font-size: clamp(1.5rem, 3.4vw, 1.95rem); line-height: 1.15; margin: 0 0 1rem; color: var(--ink);
+  }
+  h3 { font-family: var(--sans); font-weight: 650; font-size: 1.1rem; margin: 0 0 0.3rem; color: var(--ink); }
+  p { margin: 0 0 1rem; }
+
+  /* pipeline: a genuine sequence */
+  .steps { list-style: none; padding: 0; margin: 1.5rem 0 0; counter-reset: step; display: grid; gap: 1.25rem; }
+  .steps li { counter-increment: step; display: grid; grid-template-columns: 2.4rem 1fr; gap: 0.9rem; align-items: start; }
+  .steps li::before {
+    content: counter(step); font-family: var(--sans); font-weight: 700; font-size: 1rem;
+    width: 2.4rem; height: 2.4rem; border-radius: 50%; display: grid; place-items: center;
+    background: var(--sky); color: var(--glint);
+  }
+  .steps p { margin: 0; color: var(--muted); }
+
+  /* results */
+  .figures { display: grid; gap: 2rem; margin-top: 1.75rem; }
+  @media (min-width: 820px) { .figures { grid-template-columns: 1fr 1fr; } .figures .wide { grid-column: 1 / -1; } }
+  .figures figure { margin: 0; }
+  .figures img { width: 100%; border-radius: 6px; background: var(--surface); }
+  .figures figcaption { font-size: 0.95rem; color: var(--muted); margin-top: 0.6rem; line-height: 1.5; }
+  .figures figcaption strong { color: var(--ink); font-family: var(--sans); font-weight: 650; }
+  /* shown until you add the real image file */
+  .missing {
+    aspect-ratio: 4 / 3; display: grid; place-items: center; padding: 1rem; text-align: center;
+    border: 1.5px dashed var(--rule); border-radius: 6px; background: var(--surface);
+    font-family: var(--sans); font-size: 0.9rem; color: var(--muted);
+  }
+  .figures .wide .missing { aspect-ratio: 16 / 7; }
+
+  .note { font-family: var(--sans); font-size: 0.95rem; background: var(--surface); border-left: 3px solid var(--brand); padding: 0.9rem 1.1rem; border-radius: 0 6px 6px 0; }
+
+  footer { border-top: 1px solid var(--rule); padding: 2rem 0 3rem; font-family: var(--sans); font-size: 0.9rem; color: var(--muted); }
+  footer p { max-width: 44rem; }
+</style>
+</head>
+<body>
+
+<header class="wrap hero">
+  <div>
+    <h1>Satellite Streak Detection and Photometric Analysis Using All-Sky Images</h1>
+    <p class="lede">An automated pipeline that finds satellite streaks in all-sky images from the ALPACA camera at Paranal and measures how bright they get, down to single-exposure light curves of their brightest flashes.</p>
+    <p class="byline"><strong>Oscar Bergstrom</strong><br>MSc project, Imperial College London<br>RAS Specialist Discussion: Dark and Quiet Skies</p>
+    <nav class="links" aria-label="Project links">
+      <a class="btn primary" href="poster.pdf">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 21h14"/></svg>
+        Poster PDF
+      </a>
+      <!-- When the preprint is out: replace href="#preprint" with the arXiv link -->
+      <a class="btn" href="#preprint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5"/></svg>
+        Preprint
+      </a>
+      <a class="btn" href="https://github.com/OscarBergstrom/ALPACA-Streak-Detection-">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m8 7-5 5 5 5m8-10 5 5-5 5"/></svg>
+        Code
+      </a>
+      <a class="btn" href="mailto:oscar.bergtrom25@imperial.ac.uk">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18v12H3zM3 7l9 6 9-6"/></svg>
+        Email
+      </a>
+    </nav>
+  </div>
+
+  <figure class="sky">
+    <svg viewBox="0 0 400 400" role="img" aria-labelledby="sky-title">
+      <title id="sky-title">Illustration of an all-sky view with a satellite crossing it.</title>
+      <defs>
+        <radialGradient id="night" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#0a3466"/>
+          <stop offset="78%" stop-color="#002147"/>
+          <stop offset="94%" stop-color="#001a38"/>
+          <stop offset="100%" stop-color="#003e74"/>
+        </radialGradient>
+        <radialGradient id="glow">
+          <stop offset="0%" stop-color="#ffffff"/>
+          <stop offset="25%" stop-color="#d4effc" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#d4effc" stop-opacity="0"/>
+        </radialGradient>
+        <clipPath id="dome"><circle cx="200" cy="200" r="180"/></clipPath>
+      </defs>
+      <circle cx="200" cy="200" r="180" fill="url(#night)"/>
+      <g id="stars" clip-path="url(#dome)"></g>
+      <!-- altitude rings at 30° and 60° -->
+      <g fill="none" stroke="#9d9d9d" stroke-opacity="0.3" stroke-width="1" stroke-dasharray="2 5">
+        <circle cx="200" cy="200" r="120"/>
+        <circle cx="200" cy="200" r="60"/>
+      </g>
+      <circle cx="200" cy="200" r="180" fill="none" stroke="#9d9d9d" stroke-opacity="0.55" stroke-width="1.5"/>
+      <g font-family="Archivo, Arial, sans-serif" font-size="13" font-weight="600" fill="#9d9d9d" text-anchor="middle">
+        <text x="200" y="14">N</text><text x="200" y="398">S</text>
+        <text x="8" y="205">E</text><text x="392" y="205">W</text>
+      </g>
+      <path class="streak" d="M62 128 Q 205 150 352 262" fill="none" stroke="#ebeeee" stroke-width="2" stroke-linecap="round" stroke-opacity="0.85"/>
+      </g>
+    </svg>
+    <figcaption>Illustration: a satellite crossing the sky with a brief specular glint</figcaption>
+  </figure>
+</header>
+
+<main class="wrap">
+
+  <section aria-labelledby="overview">
+    <div class="col">
+      <h2 id="overview">Overview</h2>
+      <p>The number of bright satellites in low Earth orbit is growing fast, and some of the most disruptive events for ground-based astronomy are short specular glints, when sunlight reflects off a flat surface straight towards the observer. These flashes last seconds and are hard to predict, so targeted observations tend to miss them.</p>
+      <p>All-sky cameras watch the entire sky every night, which makes them a cheap way to catch these events. This project builds a pipeline for ALPACA, an all-sky camera at ESO's Paranal Observatory, that automatically detects satellite streaks and measures their brightness, adapting techniques used by meteor networks such as the Global Meteor Network.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="method">
+    <div class="col">
+      <h2 id="method">How the pipeline works</h2>
+      <ol class="steps">
+        <li><div><h3>Calibrate the fisheye lens</h3><p>Solve the camera's distortion using SkyFit2 so every pixel maps to a known celestialposition on the sky.</p></div></li>
+        <li><div><h3>Re-project the sky</h3><p>A gnomonic projection turns satellite tracks, which follow great circles, into straight lines.</p></div></li>
+        <li><div><h3>Detect streaks</h3><p>A Hough transform picks out the straight tracks in the re-projected images.</p></div></li>
+        <li><div><h3>Find glints</h3><p>Contour detection algorithm detects glints which due to crosstalk appear as ovals with streak tails.</p></div></li>
+        <li><div><h3>Identify satellites</h3><p>SatChecker API applied to identify satellite/object matches.</p></div></li>
+        <li><div><h3>Measure brightness</h3><p>Differential photometry against field stars gives the satellite's apparent magnitude along the track.</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section aria-labelledby="results">
+    <div class="col">
+      <h2 id="results">Results so far</h2>
+      <p>The pipeline is strongest on bright glints, brighter than magnitude 0, where it produces single-exposure light curves ready for analysis. </p>
+    </div>
+
+    <!-- Put your images in a folder called "figures" next to this file, using these names (or change the src). -->
+    <div class="figures">
+      <figure class="wide">
+        <img src="hulianwang_glints.png" alt="Light curve of a bright satellite glint" loading="lazy" onerror="missing(this)">
+        <figcaption><strong>A selection of 4 bright Hulianwang glints.</strong>.</figcaption>
+      </figure>
+      <figure>
+        <img src="figures/fisheye_vs_gnomonic.png" alt="Raw fisheye frame beside its gnomonic projection" loading="lazy" onerror="missing(this)">
+        <figcaption><strong>De-warping the sky.</strong> The raw fisheye frame and its gnomonic projection, where satellite tracks become straight lines.</figcaption>
+      </figure>
+      <figure>
+        <img src="figures/hough_detection.png" alt="Satellite streak detected with the Hough transform" loading="lazy" onerror="missing(this)">
+        <figcaption><strong>Streak detection.</strong> A satellite track picked out by the Hough transform.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section aria-labelledby="preprint" id="preprint-section">
+    <div class="col">
+      <h2 id="preprint">Preprint</h2>
+      <p class="note">A paper is in preparation. Email me if you'd like a copy when it's ready.</p>
+      <!-- When it's out, replace the note above with something like:
+      <p><a href="https://arxiv.org/abs/XXXX.XXXXX">Bergstrom et al. (2027), Title of the paper</a></p> -->
+    </div>
+  </section>
+
+  <section aria-labelledby="contact">
+    <div class="col">
+      <h2 id="contact">Get in touch</h2>
+      <p>I'm happy to talk about the pipeline, the data or collaborations. Email <a href="mailto:oscar.bergtrom25@imperial.ac.uk">oscar.bergtrom25@imperial.ac.uk</a>, or open an issue on <a href="https://github.com/OscarBergstrom/ALPACA-Streak-Detection-">GitHub</a>.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <p>Supervised by Michael Peel at Imperial College London. ALPACA data gathered from the publically avaialable ESO Archive source: https://archive.eso.org/cms.html. Based on observations made at ESO's Paranal Observatory.</p>
+</footer>
+
+<script>
+  // Placeholder for any figure that hasn't been added yet
+  function missing(img) {
+    var box = document.createElement('div');
+    box.className = 'missing';
+    box.textContent = 'Add ' + img.getAttribute('src');
+    img.replaceWith(box);
+  }
+
+  // Deterministic star field, so it looks the same on every visit
+  (function () {
+    var g = document.getElementById('stars');
+    var seed = 7;
+    function rand() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+    var ns = 'http://www.w3.org/2000/svg';
+    for (var i = 0; i < 140; i++) {
+      var r = 176 * Math.sqrt(rand()), t = rand() * Math.PI * 2;
+      var c = document.createElementNS(ns, 'circle');
+      var big = rand() > 0.92;
+      c.setAttribute('cx', (200 + r * Math.cos(t)).toFixed(1));
+      c.setAttribute('cy', (200 + r * Math.sin(t)).toFixed(1));
+      c.setAttribute('r', big ? 1.5 : (0.5 + rand() * 0.6).toFixed(2));
+      c.setAttribute('fill', '#ebeeee');
+      c.setAttribute('opacity', (big ? 0.9 : 0.35 + rand() * 0.45).toFixed(2));
+      g.appendChild(c);
+    }
+  })();
+</script>
+</body>
+</html>

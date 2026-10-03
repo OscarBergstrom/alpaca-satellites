@@ -237,7 +237,7 @@
         <li><div><h3>Calibrate the fisheye lens</h3><p>Solve the camera's distortion using SkyFit2 so every pixel maps to a known celestial position on the sky.</p></div></li>
         <li><div><h3>Re-project the sky</h3><p>A gnomonic projection turns satellite tracks, which follow great circles, into straight lines.</p></div></li>
         <li><div><h3>Detect streaks</h3><p>A Hough transform picks out the straight tracks in the re-projected images.</p></div></li>
-        <li><div><h3>Find glints</h3><p>Contour detection algorithm detects glints which due to crosstalk appear as ovals with streak tails.</p></div></li>
+        <li><div><h3>Find glints</h3><p>Contour detection algorithm detects glints, which, due to crosstalk, appear as ovals with streak tails.</p></div></li>
         <li><div><h3>Identify satellites</h3><p>SatChecker API applied to identify satellite/object matches.</p></div></li>
         <li><div><h3>Measure brightness</h3><p>Differential photometry against field stars gives the satellite's apparent magnitude along the track.</p></div></li>
       </ol>
@@ -247,7 +247,7 @@
   <section aria-labelledby="results">
     <div class="col">
       <h2 id="results">Results so far</h2>
-      <p>The pipeline is strongest on bright glints, brighter than magnitude 0, where it produces single-exposure light curves ready for analysis.</p>
+      <p>The pipeline enables you to construct single-exposure light curves. Given the ALPACA camera's sensitivity, < 0 mag glints are measurable without saturating the CMOS sensor. </p>
     </div>
 
     <!-- Put your images in a folder called "figures" next to this file, using these names (or change the src). -->
@@ -287,17 +287,25 @@
   <div class="col">
     <h2 id="references">References</h2>
     <ol class="refs">
-      <li id="ref-1">
-        Author, A., &amp; Author, B. (2024).
-        <cite>Title of the paper.
-        <span class="journal">Journal Name</span>, 12(3), 45–67.
-        <a href="https://doi.org/10.xxxx/xxxxx">doi:10.xxxx/xxxxx</a>
+      <li id="ref-mcdowell2026">
+        McDowell, J. (2026, June 12).
+        Satellite Statistics Page.
+        <span class="journal">Jonathan's Space Pages</span>.
+        <a href="https://www.planet4589.org/space/stats/index.html">planet4589.org/space/stats</a>
+        (accessed 25 June 2026).
       </li>
-      <li id="ref-2">
-        Author, C. (2023).
-        Another paper title.
-        <span class="journal">Monthly Notices of the RAS</span>, 520, 1–10.
-        <a href="https://doi.org/10.xxxx/xxxxx">doi:10.xxxx/xxxxx</a>
+      <li id="ref-vida2021">
+        Vida, D., Šegon, D., Gural, P. S., et al. (2021).
+        The Global Meteor Network – Methodology and First Results.
+        <span class="journal">Monthly Notices of the Royal Astronomical Society</span>, 506(4), 5046–5074.
+        <a href="https://doi.org/10.1093/mnras/stab2008">doi:10.1093/mnras/stab2008</a>
+      </li>
+      <li id="ref-rms">
+        Global Meteor Network (2026).
+        RMS: Raspberry Pi Meteor Station software (incl. SkyFit2).
+        <span class="journal">GitHub repository</span>.
+        <a href="https://github.com/CroatianMeteorNetwork/RMS">github.com/CroatianMeteorNetwork/RMS</a>
+        (accessed DD Month 2026).
       </li>
     </ol>
   </div>
@@ -305,7 +313,7 @@
 </main>
 
 <footer class="wrap">
-  <p>Supervised by Michael Peel at Imperial College London. ALPACA data from the publicly available <a href="https://archive.eso.org/cms.html">ESO Archive</a>. Based on observations made at ESO's Paranal Observatory.</p>
+  <p>Supervised by Michael Peel at Imperial College London. ALPACA data from the publicly available <a href="https://archive.eso.org/cms.html">ESO Archive</a>.</p>
 </footer>
 
 <script>

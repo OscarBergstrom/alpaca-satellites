@@ -136,40 +136,34 @@
   }
   .steps p { margin: 0; color: var(--muted); }
 
-  /* results */
-.figures { display: grid; gap: 1.5rem; margin-top: 1.75rem; counter-reset: fig; }
-@media (min-width: 820px) {
-  .figures { grid-template-columns: 1fr 1fr; }
-  .figures .wide { grid-column: 1 / -1; }
-}
-.figures figure {
-  margin: 0; counter-increment: fig;
-  display: flex; flex-direction: column;
-  background: var(--surface); border: 1px solid var(--rule);
-  border-radius: 10px; overflow: hidden;
-}
-.figures figure > a { display: block; overflow: hidden; background: #fff; }
-.figures img { width: 100%; height: auto; }
-@media (prefers-reduced-motion: no-preference) {
-  .figures img { transition: transform 0.35s ease; }
-  .figures figure > a:hover img { transform: scale(1.02); }
-}
-.figures figcaption {
-  flex: 1; padding: 0.85rem 1rem 1rem; border-top: 1px solid var(--rule);
-  font-size: 0.95rem; color: var(--muted); line-height: 1.5;
-}
-.figures figcaption::before {
-  content: "Figure " counter(fig) ". ";
-  font-family: var(--sans); font-weight: 700; color: var(--ink);
-}
-.figures figcaption strong { color: var(--ink); font-family: var(--sans); font-weight: 650; }
+  /* results: figures stacked one below another */
+  .figures { display: grid; gap: 2rem; margin-top: 1.75rem; counter-reset: fig; }
+  .figures figure {
+    margin: 0; counter-increment: fig;
+    background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 10px; overflow: hidden;
+  }
+  .figures figure > a { display: block; overflow: hidden; background: #fff; }
+  .figures img { width: 100%; height: auto; }
+  @media (prefers-reduced-motion: no-preference) {
+    .figures img { transition: transform 0.35s ease; }
+    .figures figure > a:hover img { transform: scale(1.015); }
+  }
+  .figures figcaption {
+    padding: 0.85rem 1rem 1rem; border-top: 1px solid var(--rule);
+    font-size: 0.95rem; color: var(--muted); line-height: 1.5;
+  }
+  .figures figcaption::before {
+    content: "Figure " counter(fig) ". ";
+    font-family: var(--sans); font-weight: 700; color: var(--ink);
+  }
+  .figures figcaption strong { color: var(--ink); font-family: var(--sans); font-weight: 650; }
 
-/* shown until you add the real image file */
-.missing {
-  aspect-ratio: 4 / 3; display: grid; place-items: center; padding: 1rem; text-align: center;
-  background: var(--surface); font-family: var(--sans); font-size: 0.9rem; color: var(--muted);
-}
-.figures .wide .missing { aspect-ratio: 16 / 7; }
+  /* shown until you add the real image file */
+  .missing {
+    aspect-ratio: 16 / 7; display: grid; place-items: center; padding: 1rem; text-align: center;
+    background: var(--surface); font-family: var(--sans); font-size: 0.9rem; color: var(--muted);
+  }
 
   .note { font-family: var(--sans); font-size: 0.95rem; background: var(--surface); border-left: 3px solid var(--brand); padding: 0.9rem 1.1rem; border-radius: 0 6px 6px 0; }
 
@@ -270,23 +264,23 @@
       <p>The pipeline enables you to construct single-exposure light curves. Given the ALPACA camera's sensitivity, < 0 mag glints are measurable without saturating the CMOS sensor. </p>
     </div>
 
-    <!-- Put your images in a folder called "figures" next to this file, using these names (or change the src). -->
+    <!-- Put your images in the same folder as this file, using these names (or change the src). -->
     <div class="figures">
-      <figure class="wide">
-        <a href="figures/hulianwang_glints.png">
-          <img src="figures/hulianwang_glints.png" alt="Four bright Hulianwang satellite glints" loading="lazy" onerror="missing(this)">
+      <figure>
+        <a href="hulianwang_glints.png">
+          <img src="hulianwang_glints.png" alt="Four bright Hulianwang satellite glints" loading="lazy" onerror="missing(this)">
         </a>
         <figcaption><strong>Bright Hulianwang glints.</strong> Four glints from [date range], peaking at [mag]. Note the oval shape and streak tails caused by crosstalk.</figcaption>
       </figure>
       <figure>
-        <a href="figures/GnomonicDemonstration.png">
-          <img src="figures/GnomonicDemonstration.png" alt="Raw cropped fisheye frame beside its gnomonic projection" loading="lazy" onerror="missing(this)">
+        <a href="GnomonicDemonstration.png">
+          <img src="GnomonicDemonstration.png" alt="Raw cropped fisheye frame beside its gnomonic projection" loading="lazy" onerror="missing(this)">
         </a>
         <figcaption><strong>De-warping the sky.</strong> The raw fisheye frame and its gnomonic projection, where satellite tracks become straight lines.</figcaption>
       </figure>
       <figure>
-        <a href="figures/light_curve.png">
-          <img src="figures/light_curve.png" alt="Single-exposure light curve of a satellite glint" loading="lazy" onerror="missing(this)">
+        <a href="light_curve.png">
+          <img src="light_curve.png" alt="Single-exposure light curve of a satellite glint" loading="lazy" onerror="missing(this)">
         </a>
         <figcaption><strong>A single-exposure light curve.</strong> Apparent magnitude along the track of [satellite], from differential photometry against field stars.</figcaption>
       </figure>
